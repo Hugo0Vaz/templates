@@ -33,18 +33,33 @@
           sqlc             # SQL to Go type-safe codegen
           protobuf         # Protocol Buffers
           grpcurl          # gRPC debugging
+
+          postgresql
         ];
       in
       {
         devShells.default = pkgs.mkShell {
-          name = "go-dev-env";
+          name = "golang-dev";
 
           packages = devTools;
 
           shellHook = ''
-            echo "Go `${pkgs.go}/bin/go version`"
+            trap 'pg_ctl stop; echo "Postres process stopped!"' EXIT
+
+            export PGDATA="$PWD/data/pgdata"
+
+            if [ ! -d "$PGDATA" ]; then
+              echo "Creating PostgreSQL data directory in $PGDATA"
+              initdb -D $PGDATA --no-locale --encoding=UTF8
+            else
+              echo "To run PostgreSQL run:"
+              echo "pg_ctl -D $PGDATA -l ./data/log_file start"
+            fi
+
+            figlet "golang-dev"
+
             echo "Available tools:"
-            echo "  gopls, delve, golangci-lint, air, sqlc, etc."
+            echo "  golang, gopls, delve, go-tools, golangci-lint, air, sqlc, etc."
           '';
         };
       });
