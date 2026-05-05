@@ -2,34 +2,32 @@
 
 Collection of project templates, some are Nix Flake's based templates.
 
-## 1. Listing Templates
+## Using Flake Templates
 
-1. Remotely
+1. Listing templates remotely.
 
 ```bash
 nix flake show github:Hugo0Vaz/templates
 
 ```
 
-2. Locally
+2. Listing templates locally.
 
 ```bash
 nix flake show ./<PATH_TO_FLAKE_DIR>
 
 ```
 
-## 2. Using Flake Templates
-
-1. Creating template in a existing dir.
+3. Creating template in a existing dir.
 
 ```bash
 mkdir new_proj && cd new_proj
-nix flake init -t temaplates#<NAME_OF_TEMPLATE>
+nix flake init -t github:Hugo0Vaz/templates#<NAME_OF_TEMPLATE>
 
 ```
 
-2. Creating template in a new dir.
+4. Creating template in a new dir.
 
 ```bash
-nix flake new -t templates#<NAME_OF_TEMPLATE>
+nix flake new -t github:Hugo0Vaz/templates#<NAME_OF_TEMPLATE>
 ```
