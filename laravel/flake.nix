@@ -5,65 +5,67 @@
 {
   description = "Laravel 11 Dev Enviroment";
 
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+  inputs = {
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+  };
 
-  outputs = { self, nixpkgs }:
-    let
-      supportedSystems =
-        [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      forEachSupportedSystem = f:
-        nixpkgs.lib.genAttrs supportedSystems
-        (system: f { pkgs = import nixpkgs { inherit system; }; });
-    in {
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell {
-          packages = with pkgs; [
+  outputs = inputs@{ flake-parts, nixpkgs, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
-            mariadb
-            redis
+      perSystem = { system, ... }:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          devShells.default = pkgs.mkShell {
+            packages = with pkgs; [
+              mariadb
+              redis
 
-            php82
-            php82Packages.composer
-            php82Extensions.zip
-            php82Extensions.pdo_mysql
-            php82Extensions.pdo_sqlite
+              php82
+              php82Packages.composer
+              php82Extensions.zip
+              php82Extensions.pdo_mysql
+              php82Extensions.pdo_sqlite
 
-            phpactor
-          ];
+              phpactor
+            ];
 
-          shellHook = ''
-            MYSQL_BASEDIR=${pkgs.mariadb}
-            MYSQL_HOME="$PWD/mysql"
-            MYSQL_DATADIR="$MYSQL_HOME/data"
-            export MYSQL_UNIX_PORT="$MYSQL_HOME/mysql.sock"
-            MYSQL_PID_FILE="$MYSQL_HOME/mysql.pid"
-            alias mysql='mysql -u root'
+            shellHook = ''
+              MYSQL_BASEDIR=${pkgs.mariadb}
+              MYSQL_HOME="$PWD/mysql"
+              MYSQL_DATADIR="$MYSQL_HOME/data"
+              export MYSQL_UNIX_PORT="$MYSQL_HOME/mysql.sock"
+              MYSQL_PID_FILE="$MYSQL_HOME/mysql.pid"
+              alias mysql='mysql -u root'
 
-            if [ ! -d "$MYSQL_HOME" ]; then
-              # Make sure to use normal authentication method otherwise we can only
-              # connect with unix account. But users do not actually exists in nix.
-              mysql_install_db --no-defaults --auth-root-authentication-method=normal \
-                --datadir="$MYSQL_DATADIR" --basedir="$MYSQL_BASEDIR" \
-                --pid-file="$MYSQL_PID_FILE"
-            fi
+              if [ ! -d "$MYSQL_HOME" ]; then
+                # Make sure to use normal authentication method otherwise we can only
+                # connect with unix account. But users do not actually exists in nix.
+                mysql_install_db --no-defaults --auth-root-authentication-method=normal \
+                  --datadir="$MYSQL_DATADIR" --basedir="$MYSQL_BASEDIR" \
+                  --pid-file="$MYSQL_PID_FILE"
+              fi
 
-            # Starts the daemon
-            # - Don't load mariadb global defaults in /etc with `--no-defaults`
-            # - Disable networking with `--skip-networking` and only use the socket so 
-            #   multiple instances can run at once
-            mysqld --no-defaults --skip-networking --datadir="$MYSQL_DATADIR" --pid-file="$MYSQL_PID_FILE" \
-              --socket="$MYSQL_UNIX_PORT" 2> "$MYSQL_HOME/mysql.log" &
-            MYSQL_PID=$!
+              # Starts the daemon
+              # - Don't load mariadb global defaults in /etc with `--no-defaults`
+              # - Disable networking with `--skip-networking` and only use the socket so 
+              #   multiple instances can run at once
+              mysqld --no-defaults --skip-networking --datadir="$MYSQL_DATADIR" --pid-file="$MYSQL_PID_FILE" \
+                --socket="$MYSQL_UNIX_PORT" 2> "$MYSQL_HOME/mysql.log" &
+              MYSQL_PID=$!
 
-            finish()
-            {
-              mysqladmin -u root --socket="$MYSQL_UNIX_PORT" shutdown
-              kill $MYSQL_PID
-              wait $MYSQL_PID
-            }
-            trap finish EXIT
-          '';
+              finish()
+              {
+                mysqladmin -u root --socket="$MYSQL_UNIX_PORT" shutdown
+                kill $MYSQL_PID
+                wait $MYSQL_PID
+              }
+              trap finish EXIT
+            '';
+          };
         };
-      });
     };
 }

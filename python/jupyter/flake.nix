@@ -1,27 +1,30 @@
 {
   description = "A Nix-flake-based Jupyter development environment";
 
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+  inputs = {
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+  };
 
-  outputs = { self, nixpkgs, }:
-    let
-      supportedSystems =
-        [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      forEachSupportedSystem = f:
-        nixpkgs.lib.genAttrs supportedSystems
-        (system: f { pkgs = import nixpkgs { inherit system; }; });
-    in {
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell {
-          venvDir = ".venv";
-          packages = with pkgs;
-            [ python311 ] ++ (with python311Packages; [
-              ipykernel
-              pip
-              venvShellHook
-              jupyterlab
-            ]);
+  outputs = inputs@{ flake-parts, nixpkgs, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+
+      perSystem = { system, ... }:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          devShells.default = pkgs.mkShell {
+            venvDir = ".venv";
+            packages = with pkgs;
+              [ python311 ] ++ (with python311Packages; [
+                ipykernel
+                pip
+                venvShellHook
+                jupyterlab
+              ]);
+          };
         };
-      });
     };
 }
