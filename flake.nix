@@ -37,6 +37,11 @@
         path = ./visihub;
         description = "Visihub development environment - Laravel backend + Expo frontend";
       };
+
+      astro = {
+        path = ./astro;
+        description = "Astro.js development environment";
+      };
     };
 
     defaultTemplate = self.templates.default;
